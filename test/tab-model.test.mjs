@@ -1,21 +1,27 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getInitialTab, normalizeRecord, tabs } from '../src/tab-model.mjs';
+import { readFile } from 'node:fs/promises';
+import { getInitialCard, normalizeDeck, normalizeRecord } from '../src/tab-model.mjs';
 
-test('exposes exactly five tabs', () => {
-  assert.equal(tabs.length, 5);
-  assert.deepEqual(tabs.map(tab => tab.label), ['完整闭环', '记忆分层', '写入规则', '业务案例', '性格趋势']);
+test('accepts any positive number of cards and preserves title/content', async () => {
+  const content = JSON.parse(await readFile(new URL('../content.json', import.meta.url)));
+  const deck = normalizeDeck(content);
+  assert.ok(deck.cards.length >= 2);
+  assert.equal(deck.cards[0].title, content.cards[0].title);
+  assert.match(deck.cards[0].content, /身体变化：/);
+  assert.match(deck.cards[0].content, /认知变化：/);
+  assert.match(deck.cards[0].content, /能力变化：/);
 });
 
-test('normalizes invalid tab values to the last tab', () => {
-  assert.equal(getInitialTab(undefined), 4);
-  assert.equal(getInitialTab('nope'), 4);
-  assert.equal(getInitialTab(99), 4);
-  assert.equal(getInitialTab('2'), 2);
+test('normalizes invalid card values to the first card', () => {
+  assert.equal(getInitialCard(undefined, 3), 0);
+  assert.equal(getInitialCard('nope', 3), 0);
+  assert.equal(getInitialCard(99, 3), 0);
+  assert.equal(getInitialCard('2', 3), 2);
 });
 
 test('normalizes a persisted Feishu record', () => {
-  assert.deepEqual(normalizeRecord({ activeTab: 1 }), { activeTab: 1 });
-  assert.deepEqual(normalizeRecord({ activeTab: '3' }), { activeTab: 3 });
-  assert.deepEqual(normalizeRecord(null), {});
+  assert.deepEqual(normalizeRecord({ activeCard: 1 }, 3), { activeCard: 1 });
+  assert.deepEqual(normalizeRecord({ activeCard: '3' }, 3), { activeCard: 0 });
+  assert.deepEqual(normalizeRecord(null, 3), {});
 });
