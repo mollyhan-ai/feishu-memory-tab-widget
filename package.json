@@ -1,1 +1,11 @@
-{"name":"feishu-memory-tab-widget","version":"0.1.0","private":true,"description":"A Feishu cloud document widget with five switchable memory-design tabs.","type":"module","scripts":{"build":"node scripts/build.mjs","test":"node --test"}}
+{
+  "name": "switchable-content-cards",
+  "version": "0.2.0",
+  "private": true,
+  "description": "A data-driven switchable content card renderer and Codex Skill.",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test"
+  }
+}
