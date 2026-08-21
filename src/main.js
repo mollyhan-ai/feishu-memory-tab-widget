@@ -1,13 +1,15 @@
-import { getInitialTab, normalizeRecord, tabs } from './tab-model.mjs';
+import { getInitialCard, normalizeDeck, normalizeRecord } from './tab-model.mjs';
 
-const STORAGE_KEY = 'feishu-memory-tab-widget:active-tab';
+const STORAGE_KEY = 'switchable-content-cards:active-card';
 const tabsEl = document.querySelector('#tabs');
 const panelEl = document.querySelector('#panel');
 const statusEl = document.querySelector('#host-status');
 const resetButton = document.querySelector('#reset-button');
-const queryTab = new URLSearchParams(window.location.search).get('tab');
+const queryCard = new URLSearchParams(window.location.search).get('card');
+const EMBEDDED_DECK = null;
 
-let activeIndex = getInitialTab(queryTab);
+let deck = normalizeDeck(EMBEDDED_DECK);
+let activeIndex = 0;
 let feishuHost = null;
 
 function escapeHtml(value) {
@@ -24,99 +26,59 @@ function lineBreaks(value) {
 }
 
 function renderTabs() {
-  tabsEl.innerHTML = tabs.map((tab, index) => `
-    <button
-      class="tab-button ${index === activeIndex ? 'is-active' : ''}"
-      id="tab-${tab.id}"
-      type="button"
-      role="tab"
-      aria-selected="${index === activeIndex}"
-      aria-controls="panel"
-      tabindex="${index === activeIndex ? '0' : '-1'}"
-      data-index="${index}"
-    >${index + 1}. ${escapeHtml(tab.label)}</button>
-  `).join('');
-}
-
-function renderStandardPanel(tab) {
-  return `
-    <div class="panel-heading">
-      <p class="kicker">${escapeHtml(tab.kicker)}</p>
-      <h2>${escapeHtml(tab.title)}</h2>
-      <p class="lead">${escapeHtml(tab.lead)}</p>
-    </div>
-    <div class="card-grid">
-      ${tab.cards.map((card, index) => `
-        <article class="info-card card-${index + 1}">
-          <span class="card-number">0${index + 1}</span>
-          <h3>${escapeHtml(card.title)}</h3>
-          <p>${escapeHtml(card.text)}</p>
-        </article>
-      `).join('')}
-    </div>
-    <div class="note-box"><strong>设计提醒</strong><span>${escapeHtml(tab.note)}</span></div>
-  `;
-}
-
-function renderTrendPanel(tab) {
-  return `
-    <div class="panel-heading trend-heading">
-      <p class="kicker">${escapeHtml(tab.kicker)}</p>
-      <h2>${escapeHtml(tab.title)}</h2>
-    </div>
-    <div class="quote-grid">
-      ${tab.quoteCards.map(card => `
-        <article class="quote-card ${card.variant}">
-          <h3>${escapeHtml(card.title)}</h3>
-          <p>${escapeHtml(card.text)}</p>
-        </article>
-      `).join('')}
-    </div>
-    <div class="step-flow" aria-label="从每日交互到用户确认的五步流程">
-      ${tab.steps.map((step, index) => `
-        <div class="step-wrap">
-          <div class="step-card"><span>${index + 1}</span><strong>${lineBreaks(step)}</strong></div>
-          ${index < tab.steps.length - 1 ? '<span class="flow-arrow" aria-hidden="true">→</span>' : ''}
-        </div>
-      `).join('')}
-    </div>
-    <div class="decision-grid">
-      <article class="decision-card avoid"><h3>不建议</h3><p>“${escapeHtml(tab.warning)}”</p></article>
-      <article class="decision-card recommend"><h3>建议</h3><p>${escapeHtml(tab.recommendation)}</p></article>
-    </div>
-    <div class="note-box"><strong>当前要点</strong><span>${escapeHtml(tab.note.replace('当前要点：', ''))}</span></div>
-  `;
+  tabsEl.innerHTML = deck.cards.map((card, index) => (
+    '<button class="tab-button ' + (index === activeIndex ? 'is-active' : '') + '"' +
+    ' id="tab-' + escapeHtml(card.id) + '"' +
+    ' type="button" role="tab"' +
+    ' aria-selected="' + (index === activeIndex) + '"' +
+    ' aria-controls="panel"' +
+    ' tabindex="' + (index === activeIndex ? '0' : '-1') + '"' +
+    ' data-index="' + index + '">' +
+    escapeHtml(card.title) +
+    '</button>'
+  )).join('');
 }
 
 function renderPanel() {
-  const tab = tabs[activeIndex];
-  panelEl.setAttribute('aria-labelledby', `tab-${tab.id}`);
-  panelEl.innerHTML = tab.id === 'trends' ? renderTrendPanel(tab) : renderStandardPanel(tab);
+  const card = deck.cards[activeIndex];
+  if (!card) {
+    panelEl.innerHTML = '<div class="empty-state">还没有可展示的卡片。</div>';
+    return;
+  }
+
+  panelEl.setAttribute('aria-labelledby', 'tab-' + card.id);
+  panelEl.innerHTML =
+    '<article class="content-card tone-' + escapeHtml(card.tone) + '">' +
+      '<div class="card-meta"><span>卡片 ' + String(activeIndex + 1).padStart(2, '0') +
+        '</span><span>' + deck.cards.length + ' 张</span></div>' +
+      '<h2>' + escapeHtml(card.title) + '</h2>' +
+      '<div class="card-content">' + lineBreaks(card.content) + '</div>' +
+    '</article>';
 }
 
 function updateUrl() {
   const url = new URL(window.location.href);
-  url.searchParams.set('tab', String(activeIndex));
+  url.searchParams.set('card', String(activeIndex));
   window.history.replaceState({}, '', url);
 }
 
-async function persistActiveTab() {
+async function persistActiveCard() {
   localStorage.setItem(STORAGE_KEY, String(activeIndex));
   if (!feishuHost?.Record?.setRecord) return;
   try {
-    await feishuHost.Record.setRecord({ activeTab: activeIndex });
+    await feishuHost.Record.setRecord({ activeCard: activeIndex });
   } catch (error) {
     console.warn('Feishu record persistence is unavailable.', error);
   }
 }
 
-async function setActiveTab(nextIndex, { persist = true } = {}) {
-  activeIndex = getInitialTab(nextIndex);
+async function setActiveCard(nextIndex, { persist = true } = {}) {
+  activeIndex = getInitialCard(nextIndex, deck.cards.length);
   renderTabs();
   renderPanel();
   updateUrl();
-  if (persist) await persistActiveTab();
-  document.querySelector(`#tab-${tabs[activeIndex].id}`)?.focus({ preventScroll: true });
+  if (persist) await persistActiveCard();
+  document.querySelector('#tab-' + deck.cards[activeIndex]?.id)?.focus({ preventScroll: true });
 }
 
 function handleTabKeydown(event) {
@@ -124,11 +86,23 @@ function handleTabKeydown(event) {
   event.preventDefault();
   const current = Number(event.target.dataset.index);
   const next = event.key === 'ArrowRight'
-    ? (current + 1) % tabs.length
+    ? (current + 1) % deck.cards.length
     : event.key === 'ArrowLeft'
-      ? (current - 1 + tabs.length) % tabs.length
-      : event.key === 'Home' ? 0 : tabs.length - 1;
-  setActiveTab(next);
+      ? (current - 1 + deck.cards.length) % deck.cards.length
+      : event.key === 'Home' ? 0 : deck.cards.length - 1;
+  setActiveCard(next);
+}
+
+async function loadDeck() {
+  if (EMBEDDED_DECK) return normalizeDeck(EMBEDDED_DECK);
+  try {
+    const response = await fetch('content.json', { cache: 'no-store' });
+    if (!response.ok) throw new Error('content.json returned ' + response.status);
+    return normalizeDeck(await response.json());
+  } catch (error) {
+    console.warn('Card content could not be loaded.', error);
+    return normalizeDeck({ title: '可切换卡片', cards: [] });
+  }
 }
 
 async function initFeishuHost() {
@@ -137,11 +111,11 @@ async function initFeishuHost() {
   statusEl.textContent = '飞书云文档小组件';
   try {
     if (feishuHost.Record?.getRecord) {
-      const record = normalizeRecord(await feishuHost.Record.getRecord());
-      if (queryTab === null && Number.isInteger(record.activeTab)) activeIndex = record.activeTab;
+      const record = normalizeRecord(await feishuHost.Record.getRecord(), deck.cards.length);
+      if (queryCard === null && Number.isInteger(record.activeCard)) activeIndex = record.activeCard;
     } else {
       const stored = localStorage.getItem(STORAGE_KEY);
-      if (queryTab === null && stored !== null) activeIndex = getInitialTab(stored);
+      if (queryCard === null && stored !== null) activeIndex = getInitialCard(stored, deck.cards.length);
     }
     renderTabs();
     renderPanel();
@@ -154,11 +128,16 @@ async function initFeishuHost() {
 
 tabsEl.addEventListener('click', event => {
   const button = event.target.closest('[role="tab"]');
-  if (button) setActiveTab(button.dataset.index);
+  if (button) setActiveCard(button.dataset.index);
 });
 tabsEl.addEventListener('keydown', handleTabKeydown);
-resetButton.addEventListener('click', () => setActiveTab(tabs.length - 1));
+resetButton.addEventListener('click', () => setActiveCard(0));
 
+deck = await loadDeck();
+document.querySelector('.widget-shell').dataset.displayMode = deck.displayMode;
+document.querySelector('#widget-title').textContent = deck.title;
+document.querySelector('#widget-subtitle').textContent = deck.subtitle;
+activeIndex = getInitialCard(queryCard, deck.cards.length);
 renderTabs();
 renderPanel();
 initFeishuHost();
