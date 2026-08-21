@@ -4,29 +4,29 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light" />
-    <title>AI Agent Memory · PM 设计地图</title>
+    <title>可切换内容卡片</title>
     <link rel="stylesheet" href="src/styles.css" />
   </head>
   <body>
-    <main class="widget-shell" data-widget="memory-tabs">
+    <main class="widget-shell" data-widget="switchable-content-cards" data-display-mode="pills">
       <header class="hero">
         <div>
-          <p class="eyebrow">AI Agent Memory · PM 设计地图</p>
-          <h1>从“记住信息”到“持续帮助用户”</h1>
-          <p class="hero-description">用五个视角拆开 Agent Memory：闭环、分层、写入、案例与长期趋势。</p>
+          <p class="eyebrow">SWITCHABLE CONTENT CARDS</p>
+          <h1 id="widget-title">可切换内容卡片</h1>
+          <p class="hero-description" id="widget-subtitle">点击上方标题，切换查看不同内容。</p>
         </div>
         <span class="host-status" id="host-status" aria-live="polite">本地预览</span>
       </header>
 
-      <div class="tab-scroller" role="tablist" aria-label="AI Agent Memory 五个设计视角">
+      <div class="tab-scroller" role="tablist" aria-label="可切换内容卡片标题">
         <div class="tabs" id="tabs"></div>
       </div>
 
       <section id="panel" class="panel" role="tabpanel" tabindex="0" aria-live="polite"></section>
 
       <footer class="footer-note">
-        <span>当前页签会在支持飞书数据接口时自动保存。</span>
-        <button class="reset-button" type="button" id="reset-button">恢复默认页签</button>
+        <span>卡片内容由资料生成；页签状态会在支持飞书数据接口时自动保存。</span>
+        <button class="reset-button" type="button" id="reset-button">回到第一张</button>
       </footer>
     </main>
 
