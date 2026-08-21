@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>AI Agent Memory · PM 设计地图</title>
+    <link rel="stylesheet" href="src/styles.css" />
+  </head>
+  <body>
+    <main class="widget-shell" data-widget="memory-tabs">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">AI Agent Memory · PM 设计地图</p>
+          <h1>从“记住信息”到“持续帮助用户”</h1>
+          <p class="hero-description">用五个视角拆开 Agent Memory：闭环、分层、写入、案例与长期趋势。</p>
+        </div>
+        <span class="host-status" id="host-status" aria-live="polite">本地预览</span>
+      </header>
+
+      <div class="tab-scroller" role="tablist" aria-label="AI Agent Memory 五个设计视角">
+        <div class="tabs" id="tabs"></div>
+      </div>
+
+      <section id="panel" class="panel" role="tabpanel" tabindex="0" aria-live="polite"></section>
+
+      <footer class="footer-note">
+        <span>当前页签会在支持飞书数据接口时自动保存。</span>
+        <button class="reset-button" type="button" id="reset-button">恢复默认页签</button>
+      </footer>
+    </main>
+
+    <script type="module" src="src/main.js"></script>
+  </body>
+</html>
