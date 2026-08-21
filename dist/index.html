@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>AI Agent Memory · PM 设计地图</title>
+    <style>:root {
+  color-scheme: light;
+  --ink: #23262b;
+  --muted: #767a80;
+  --line: #e7e8ea;
+  --blue: #2f8ff1;
+  --blue-soft: #e8f3ff;
+  --lavender: #f0ecff;
+  --peach: #fff0e8;
+  --green: #edf9f0;
+  --purple: #f3eeff;
+  --shadow: 0 20px 50px rgba(37, 39, 45, .08);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-width: 320px;
+  color: var(--ink);
+  background: #f6f7f9;
+}
+
+button { font: inherit; }
+
+.widget-shell {
+  width: min(100%, 1120px);
+  margin: 0 auto;
+  padding: 34px clamp(18px, 4vw, 54px) 24px;
+  background: #fff;
+  min-height: 100vh;
+}
+
+.hero { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; }
+.eyebrow, .kicker { margin: 0 0 10px; color: var(--blue); font-size: 13px; font-weight: 700; letter-spacing: .08em; }
+h1, h2, h3, p { margin-top: 0; }
+h1 { max-width: 780px; margin-bottom: 10px; font-size: clamp(28px, 4vw, 44px); line-height: 1.14; letter-spacing: -.04em; }
+.hero-description { margin: 0; color: var(--muted); font-size: 16px; line-height: 1.6; }
+.host-status { flex: 0 0 auto; padding: 8px 12px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); font-size: 12px; white-space: nowrap; }
+
+.tab-scroller { margin-top: 32px; overflow-x: auto; padding-bottom: 3px; }
+.tabs { display: flex; gap: 10px; min-width: max-content; }
+.tab-button { border: 1px solid #dfe2e6; border-radius: 14px; padding: 11px 17px; color: #3f4349; background: #fff; cursor: pointer; font-size: 15px; font-weight: 650; transition: background .2s, color .2s, border-color .2s, transform .2s; }
+.tab-button:hover { border-color: #a9cfff; transform: translateY(-1px); }
+.tab-button:focus-visible, .reset-button:focus-visible { outline: 3px solid rgba(47, 143, 241, .32); outline-offset: 3px; }
+.tab-button.is-active { border-color: var(--blue); color: #fff; background: var(--blue); box-shadow: 0 8px 18px rgba(47, 143, 241, .22); }
+
+.panel { margin-top: 34px; }
+.panel-heading { max-width: 850px; }
+.panel-heading h2 { margin-bottom: 12px; font-size: clamp(24px, 3vw, 34px); line-height: 1.25; letter-spacing: -.03em; }
+.lead { max-width: 760px; margin-bottom: 28px; color: var(--muted); font-size: 16px; line-height: 1.75; }
+.card-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.info-card { min-height: 190px; padding: 23px 20px; border-radius: 20px; background: var(--lavender); }
+.info-card:nth-child(2) { background: var(--blue-soft); }
+.info-card:nth-child(3) { background: var(--peach); }
+.info-card:nth-child(4) { background: var(--green); }
+.card-number { display: inline-flex; align-items: center; justify-content: center; width: 29px; height: 29px; margin-bottom: 28px; border-radius: 50%; color: #fff; background: rgba(35, 38, 43, .78); font-size: 12px; font-weight: 700; }
+.info-card h3, .quote-card h3 { margin-bottom: 8px; font-size: 20px; }
+.info-card p, .quote-card p, .decision-card p { margin: 0; color: #4f545b; font-size: 14px; line-height: 1.65; }
+.note-box { display: flex; align-items: baseline; gap: 14px; margin-top: 18px; padding: 18px 20px; border-radius: 18px; background: #f5f5f6; color: #4f545b; line-height: 1.6; }
+.note-box strong { flex: 0 0 auto; color: var(--ink); }
+
+.quote-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 26px; }
+.quote-card { padding: 24px; border-radius: 20px; }
+.quote-card.blue { background: var(--blue-soft); }
+.quote-card.peach { background: var(--peach); }
+.quote-card h3 { margin-bottom: 14px; }
+.quote-card p { font-size: 16px; color: var(--ink); }
+.step-flow { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 28px 0; }
+.step-wrap { display: flex; flex: 1; align-items: center; gap: 8px; }
+.step-card { flex: 1; min-height: 130px; display: flex; flex-direction: column; justify-content: center; padding: 15px 14px; border-radius: 18px; text-align: center; background: var(--purple); }
+.step-card span { margin-bottom: 10px; color: #8a7ab4; font-size: 12px; font-weight: 800; }
+.step-card strong { font-size: 14px; line-height: 1.45; }
+.flow-arrow { color: #a0a3a7; font-size: 22px; }
+.decision-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.decision-card { padding: 21px 24px; border-radius: 20px; }
+.decision-card h3 { margin-bottom: 12px; font-size: 18px; }
+.decision-card p { font-size: 16px; color: var(--ink); }
+.decision-card.avoid { background: #fff0eb; }
+.decision-card.avoid h3 { color: #e36b2c; }
+.decision-card.recommend { background: #fff4ec; }
+
+.footer-note { display: flex; justify-content: space-between; gap: 16px; align-items: center; margin-top: 26px; color: #96999e; font-size: 12px; }
+.reset-button { border: 0; padding: 6px 0; color: #6d7076; background: transparent; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+
+@media (max-width: 760px) {
+  .widget-shell { padding-top: 24px; }
+  .hero { display: block; }
+  .host-status { display: inline-block; margin-top: 16px; }
+  .card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .step-flow { align-items: stretch; flex-direction: column; }
+  .step-wrap { width: 100%; flex-direction: column; }
+  .step-card { width: 100%; min-height: 80px; }
+  .flow-arrow { transform: rotate(90deg); }
+}
+
+@media (max-width: 480px) {
+  .card-grid, .quote-grid, .decision-grid { grid-template-columns: 1fr; }
+  .note-box, .footer-note { align-items: flex-start; flex-direction: column; }
+  .info-card { min-height: auto; }
+}
+</style>
+  </head>
+  <body>
+    <main class="widget-shell" data-widget="memory-tabs">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">AI Agent Memory · PM 设计地图</p>
+          <h1>从“记住信息”到“持续帮助用户”</h1>
+          <p class="hero-description">用五个视角拆开 Agent Memory：闭环、分层、写入、案例与长期趋势。</p>
+        </div>
+        <span class="host-status" id="host-status" aria-live="polite">本地预览</span>
+      </header>
+
+      <div class="tab-scroller" role="tablist" aria-label="AI Agent Memory 五个设计视角">
+        <div class="tabs" id="tabs"></div>
+      </div>
+
+      <section id="panel" class="panel" role="tabpanel" tabindex="0" aria-live="polite"></section>
+
+      <footer class="footer-note">
+        <span>当前页签会在支持飞书数据接口时自动保存。</span>
+        <button class="reset-button" type="button" id="reset-button">恢复默认页签</button>
+      </footer>
+    </main>
+
+    <script type="module">export const tabs = [
+  {
+    id: 'loop',
+    label: '完整闭环',
+    kicker: '1 · 从输入到帮助',
+    title: '记忆不是存档，而是一条持续变好的闭环',
+    lead: '把用户表达、行为反馈、记忆更新和下一次帮助连起来，系统才会越用越懂场景。',
+    tone: 'blue',
+    cards: [
+      { title: '捕捉', text: '记录用户明确表达、关键选择和当下任务，不把所有对话一股脑保存。' },
+      { title: '整理', text: '把原始事件提炼成可复用的事实、偏好、约束与情境。' },
+      { title: '调用', text: '在真正相关的任务中召回，减少重复确认，让帮助更贴近目标。' },
+      { title: '修正', text: '允许用户确认、修改和删除，让记忆随着新证据变化。' }
+    ],
+    note: '设计重点：每一条记忆都应该能解释“来自哪里、为什么被保留、何时会被使用”。'
+  },
+  {
+    id: 'layers',
+    label: '记忆分层',
+    kicker: '2 · 不同信息不同寿命',
+    title: '先区分信息的生命周期，再决定存不存',
+    lead: '短期任务上下文、稳定用户偏好和长期行为趋势，应该采用不同的保存、召回和过期策略。',
+    tone: 'lavender',
+    cards: [
+      { title: '工作记忆', text: '服务当前任务，随着会话或任务结束自然淡出。' },
+      { title: '情境记忆', text: '保存近期项目、旅行、购买等具体经历，强调时间与来源。' },
+      { title: '语义记忆', text: '保存经确认的长期事实与偏好，例如语言、格式和明确禁忌。' },
+      { title: '趋势记忆', text: '只记录跨周期的行为变化，不直接把趋势写成固定人格标签。' }
+    ],
+    note: '设计重点：信息越稳定、越敏感，越需要更清楚的用户知情、确认和删除机制。'
+  },
+  {
+    id: 'write',
+    label: '写入规则',
+    kicker: '3 · 什么时候值得记住',
+    title: '写入前先问：它是否会在未来帮助用户？',
+    lead: '把“可记录”与“值得记录”分开，优先保存用户明确表达和具有重复使用价值的信息。',
+    tone: 'peach',
+    cards: [
+      { title: '明确表达', text: '用户主动说“请记住”“以后都这样做”，优先进入候选记忆。' },
+      { title: '重复出现', text: '同一偏好在多个场景中稳定出现，才考虑提升置信度。' },
+      { title: '可验证', text: '记录来源、时间和证据，避免把推测当作事实。' },
+      { title: '可撤回', text: '每条长期记忆都应支持查看、修改、删除和停止使用。' }
+    ],
+    note: '不建议：仅凭一次情绪化表达或一次行为，就给用户贴上固定标签。'
+  },
+  {
+    id: 'cases',
+    label: '业务案例',
+    kicker: '4 · 让抽象原则落地',
+    title: '业务案例要展示“记忆如何改变下一次体验”',
+    lead: '好的案例不是罗列功能，而是展示从证据到决策、再到用户收益的完整链路。',
+    tone: 'green',
+    cards: [
+      { title: '旅行规划', text: '记住用户偏好的社交强度与预算，在下一次规划中减少无效推荐。' },
+      { title: '学习辅导', text: '记录掌握情况和易错点，动态调整复习节奏，而不是重复讲已经会的内容。' },
+      { title: '内容创作', text: '保存用户确认过的语气、结构和禁用表达，帮助后续产出更稳定。' },
+      { title: '客户服务', text: '保留问题历史与已确认方案，让用户不必每次重新描述背景。' }
+    ],
+    note: '设计重点：案例必须同时说明收益、风险边界和用户如何掌控自己的信息。'
+  },
+  {
+    id: 'trends',
+    label: '性格趋势',
+    kicker: '5 · 从记住信息到持续帮助用户',
+    title: '一个月后，记录“行为趋势”，不要宣判“真人格”',
+    lead: '把用户的自述与行为证据分开保存，再经过周期性聚合，形成可被用户确认的帮助假设。',
+    tone: 'purple',
+    quoteCards: [
+      { title: '用户自述', text: '“我是 INFP”“我不喜欢人多的地方”——保存为自述，并记录来源和时间。', variant: 'blue' },
+      { title: '行为观察', text: 'Query、选择、反馈和吐槽——先形成事件证据，不直接写成性格标签。', variant: 'peach' }
+    ],
+    steps: ['每日交互\n有日期与场景', '事件证据\n选择、反馈、频次', '月度聚合\n主题与变化趋势', '行为假设\n范围 + 置信度', '用户确认\n再进入长期档案'],
+    warning: '“用户性格内向。”',
+    recommendation: '“过去 30 天在旅行规划场景中，用户更常选择低社交压力活动；置信度 0.65，尚未确认。”',
+    note: '当前要点：系统可以总结特定场景的行为趋势，但不应把推断直接写成确定的人格事实。'
+  }
+];
+
+export function getInitialTab(rawValue) {
+  const index = Number(rawValue);
+  return Number.isInteger(index) && index >= 0 && index < tabs.length ? index : tabs.length - 1;
+}
+
+export function normalizeRecord(record) {
+  if (!record || typeof record !== 'object') return {};
+  return { activeTab: getInitialTab(record.activeTab) };
+}
+
+
+
+const STORAGE_KEY = 'feishu-memory-tab-widget:active-tab';
+const tabsEl = document.querySelector('#tabs');
+const panelEl = document.querySelector('#panel');
+const statusEl = document.querySelector('#host-status');
+const resetButton = document.querySelector('#reset-button');
+const queryTab = new URLSearchParams(window.location.search).get('tab');
+
+let activeIndex = getInitialTab(queryTab);
+let feishuHost = null;
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
+function lineBreaks(value) {
+  return escapeHtml(value).replaceAll('\n', '<br />');
+}
+
+function renderTabs() {
+  tabsEl.innerHTML = tabs.map((tab, index) => `
+    <button
+      class="tab-button ${index === activeIndex ? 'is-active' : ''}"
+      id="tab-${tab.id}"
+      type="button"
+      role="tab"
+      aria-selected="${index === activeIndex}"
+      aria-controls="panel"
+      tabindex="${index === activeIndex ? '0' : '-1'}"
+      data-index="${index}"
+    >${index + 1}. ${escapeHtml(tab.label)}</button>
+  `).join('');
+}
+
+function renderStandardPanel(tab) {
+  return `
+    <div class="panel-heading">
+      <p class="kicker">${escapeHtml(tab.kicker)}</p>
+      <h2>${escapeHtml(tab.title)}</h2>
+      <p class="lead">${escapeHtml(tab.lead)}</p>
+    </div>
+    <div class="card-grid">
+      ${tab.cards.map((card, index) => `
+        <article class="info-card card-${index + 1}">
+          <span class="card-number">0${index + 1}</span>
+          <h3>${escapeHtml(card.title)}</h3>
+          <p>${escapeHtml(card.text)}</p>
+        </article>
+      `).join('')}
+    </div>
+    <div class="note-box"><strong>设计提醒</strong><span>${escapeHtml(tab.note)}</span></div>
+  `;
+}
+
+function renderTrendPanel(tab) {
+  return `
+    <div class="panel-heading trend-heading">
+      <p class="kicker">${escapeHtml(tab.kicker)}</p>
+      <h2>${escapeHtml(tab.title)}</h2>
+    </div>
+    <div class="quote-grid">
+      ${tab.quoteCards.map(card => `
+        <article class="quote-card ${card.variant}">
+          <h3>${escapeHtml(card.title)}</h3>
+          <p>${escapeHtml(card.text)}</p>
+        </article>
+      `).join('')}
+    </div>
+    <div class="step-flow" aria-label="从每日交互到用户确认的五步流程">
+      ${tab.steps.map((step, index) => `
+        <div class="step-wrap">
+          <div class="step-card"><span>${index + 1}</span><strong>${lineBreaks(step)}</strong></div>
+          ${index < tab.steps.length - 1 ? '<span class="flow-arrow" aria-hidden="true">→</span>' : ''}
+        </div>
+      `).join('')}
+    </div>
+    <div class="decision-grid">
+      <article class="decision-card avoid"><h3>不建议</h3><p>“${escapeHtml(tab.warning)}”</p></article>
+      <article class="decision-card recommend"><h3>建议</h3><p>${escapeHtml(tab.recommendation)}</p></article>
+    </div>
+    <div class="note-box"><strong>当前要点</strong><span>${escapeHtml(tab.note.replace('当前要点：', ''))}</span></div>
+  `;
+}
+
+function renderPanel() {
+  const tab = tabs[activeIndex];
+  panelEl.setAttribute('aria-labelledby', `tab-${tab.id}`);
+  panelEl.innerHTML = tab.id === 'trends' ? renderTrendPanel(tab) : renderStandardPanel(tab);
+}
+
+function updateUrl() {
+  const url = new URL(window.location.href);
+  url.searchParams.set('tab', String(activeIndex));
+  window.history.replaceState({}, '', url);
+}
+
+async function persistActiveTab() {
+  localStorage.setItem(STORAGE_KEY, String(activeIndex));
+  if (!feishuHost?.Record?.setRecord) return;
+  try {
+    await feishuHost.Record.setRecord({ activeTab: activeIndex });
+  } catch (error) {
+    console.warn('Feishu record persistence is unavailable.', error);
+  }
+}
+
+async function setActiveTab(nextIndex, { persist = true } = {}) {
+  activeIndex = getInitialTab(nextIndex);
+  renderTabs();
+  renderPanel();
+  updateUrl();
+  if (persist) await persistActiveTab();
+  document.querySelector(`#tab-${tabs[activeIndex].id}`)?.focus({ preventScroll: true });
+}
+
+function handleTabKeydown(event) {
+  if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(event.key)) return;
+  event.preventDefault();
+  const current = Number(event.target.dataset.index);
+  const next = event.key === 'ArrowRight'
+    ? (current + 1) % tabs.length
+    : event.key === 'ArrowLeft'
+      ? (current - 1 + tabs.length) % tabs.length
+      : event.key === 'Home' ? 0 : tabs.length - 1;
+  setActiveTab(next);
+}
+
+async function initFeishuHost() {
+  feishuHost = window.tt ?? window.feishu ?? null;
+  if (!feishuHost) return;
+  statusEl.textContent = '飞书云文档小组件';
+  try {
+    if (feishuHost.Record?.getRecord) {
+      const record = normalizeRecord(await feishuHost.Record.getRecord());
+      if (queryTab === null && Number.isInteger(record.activeTab)) activeIndex = record.activeTab;
+    } else {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (queryTab === null && stored !== null) activeIndex = getInitialTab(stored);
+    }
+    renderTabs();
+    renderPanel();
+    if (feishuHost.Bridge?.updateHeight) await feishuHost.Bridge.updateHeight(document.body.scrollHeight);
+    if (feishuHost.LifeCycle?.notifyAppReady) await feishuHost.LifeCycle.notifyAppReady();
+  } catch (error) {
+    console.warn('Feishu host initialization failed; using local preview.', error);
+  }
+}
+
+tabsEl.addEventListener('click', event => {
+  const button = event.target.closest('[role="tab"]');
+  if (button) setActiveTab(button.dataset.index);
+});
+tabsEl.addEventListener('keydown', handleTabKeydown);
+resetButton.addEventListener('click', () => setActiveTab(tabs.length - 1));
+
+renderTabs();
+renderPanel();
+initFeishuHost();
+</script>
+  </body>
+</html>
